@@ -2,7 +2,7 @@
 
 const mongoose = require('mongoose')
 
-const uploadSchema = new mongoose.Schema ({
+const uploadSchema = new mongoose.Schema({
   url: {
     type: String,
     required: true
@@ -17,4 +17,4 @@ const uploadSchema = new mongoose.Schema ({
 
 const Upload = mongoose.model('Upload', uploadSchema)
 
-module exports = Upload
+module.exports = Upload
