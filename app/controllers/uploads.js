@@ -3,6 +3,9 @@
 const controller = require('lib/wiring/controller')
 const models = require('app/models')
 const Upload = models.upload
+const awsUpload = require('lib/aws-upload')
+const multer = require('multer')
+const multerUpload = multer({ dest: '/tmp/'})
 
 const setModel = require('./concerns/set-mongoose-model')
 
@@ -22,20 +25,23 @@ const show = (req, res) => {
 }
 
 const create = (req, res, next) => {
-  const upload = Object.assign(req.body.upload, {
-    _owner: req.user._id
+  const upload = {
+    path: req.file.path,
+    title: req.body.image.title
+  }
+  awsUpload(file)
+  .then((s3Response) => {
+    return Upload.create({
+      url: s3Response.location,
+      title: s3Response.Key
+
+    })
   })
-  Upload.create(upload)
-    .then(upload =>
-      res.status(201)
-        .json({
-          upload: upload.toJSON({ virtuals: true, user: req.user })
-        }))
-    .catch(next)
+  .then(() => res.sendStatus(201).json({upload}))
+  .catch(next)
 }
 
 const update = (req, res, next) => {
-  delete req.body._owner  // disallow owner reassignment.
   req.upload.update(req.body.upload)
     .then(() => res.sendStatus(204))
     .catch(next)
@@ -56,6 +62,7 @@ module.exports = controller({
 }, { before: [
   // { method: setUser, only: ['index', 'show'] },
   // { method: authenticate, except: ['index', 'show'] },
-  { method: setModel(Upload), only: ['show', 'destroy'] },
+  { method: multerUpload.single('image[file]'), only: ['create'] },
+  { method: setModel(Upload), only: ['show', 'destroy', 'update'] }
   // { method: setModel(Upload, { forUser: true }), only: ['update', 'destroy'] }
 ] })
